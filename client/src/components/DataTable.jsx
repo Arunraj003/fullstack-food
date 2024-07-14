@@ -1,5 +1,6 @@
+import React from "react";
 import { ThemeProvider, createTheme } from "@mui/material";
-import MaterialTable from "material-table"; // Assuming you have this import
+import MaterialTable from "material-table"; 
 
 const DataTable = ({ columns, data, title, actions }) => {
   const defaultMaterialTheme = createTheme();

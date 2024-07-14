@@ -6,13 +6,11 @@ export const setUserDetails = (user) => {
     }
 }
 
-
 export const getUserDetails = () => {
     return {
         type : "GET_USER",
     }
 }
-
 
 export const setUserNull = () => {
     return {

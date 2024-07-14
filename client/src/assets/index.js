@@ -1,4 +1,5 @@
 export { default as logo} from './img/logo (3).png'
+export { default as logohead } from './img/logohead.png'
 export { default as Avatar } from './img/avatar.png'
 export { default as Delivery} from './img/delivery.png'
 export { default as HeroBg} from './img/heroBg.png'
