@@ -1,12 +1,16 @@
 import React from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { deleteAProduct, getAllProducts } from "../api";
 import { HiCurrencyRupee } from "../assets/icons";
-import { useSelector } from "react-redux";
 import { DataTable } from "../components";
+import { alertNULL, alertSuccess } from "../context/actions/alertActions";
+import { setAllProducts } from "../context/actions/productActions";
 
 const DBItems = () => {
-  const products = useSelector((state) => state.products.products);
+  const products = useSelector((state) => state.products);
+  const dispatch = useDispatch();
   return (
-    <div className="flex items-center justify-self-center pt-6 w-full gap-4">
+    <div className="flex items-center justify-self-center gap-4 pt-6 w-full">
       <DataTable
         columns={[
           {
@@ -14,7 +18,6 @@ const DBItems = () => {
             field: "imageURL",
             render: (rowData) => (
               <img
-                alt="img"
                 src={rowData.imageURL}
                 className="w-32 h-16 object-contain rounded-md"
               />
@@ -32,7 +35,7 @@ const DBItems = () => {
             title: "Price",
             field: "product_price",
             render: (rowData) => (
-              <p className="text-xl font-semibold flex items-center justify-center">
+              <p className="text-xl font-semibold text-textColor flex items-center justify-center ">
                 <HiCurrencyRupee className="text-red-400" />
                 {parseFloat(rowData.product_price).toFixed(2)}
               </p>
@@ -53,9 +56,18 @@ const DBItems = () => {
             icon: "delete",
             tooltip: "Delete Data",
             onClick: (event, rowData) => {
-              if (window.confirm("Are you sure want to perform this action")) {
-              }{
-                
+              if (
+                window.confirm("Are you sure, you want to perform this aciton")
+              ) {
+                deleteAProduct(rowData.productId).then((res) => {
+                  dispatch(alertSuccess("Product Deleted "));
+                  setInterval(() => {
+                    dispatch(alertNULL());
+                  }, 3000);
+                  getAllProducts().then((data) => {
+                    dispatch(setAllProducts(data));
+                  });
+                });
               }
             },
           },

@@ -1,20 +1,20 @@
-
 export const setUserDetails = (user) => {
     return {
-        type : "SET_USER",
-        user : user,
-    }
-}
-
-export const getUserDetails = () => {
+      type: "SET_USER",
+      user: user,
+    };
+  };
+  
+  export const getUserDetails = () => {
     return {
-        type : "GET_USER",
-    }
-}
-
-export const setUserNull = () => {
+      type: "GET_USER",
+    };
+  };
+  
+  export const setUserNull = () => {
     return {
-        type : "SET_USER_NULL",
-        user : null,
-    }
-}
+      type: "SET_USER_NULL",
+      user: null,
+    };
+  };
+  
