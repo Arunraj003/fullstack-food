@@ -7,8 +7,8 @@ import { alertNULL, alertSuccess } from "../context/actions/alertActions";
 import { setAllProducts } from "../context/actions/productActions";
 
 const DBItems = () => {
-  const dispatch = useDispatch();
   const products = useSelector((state) => state.products);
+  const dispatch = useDispatch();
 
   // Fetch products on component mount
   useEffect(() => {
@@ -69,7 +69,9 @@ const DBItems = () => {
             icon: "delete",
             tooltip: "Delete Data",
             onClick: (event, rowData) => {
-              if (window.confirm("Are you sure you want to perform this action?")) {
+              if (
+                window.confirm("Are you sure you want to perform this action?")
+              ) {
                 deleteAProduct(rowData.productId)
                   .then((res) => {
                     dispatch(alertSuccess("Product Deleted"));
@@ -82,7 +84,10 @@ const DBItems = () => {
                     dispatch(setAllProducts(data));
                   })
                   .catch((error) => {
-                    console.error("Failed to delete product or fetch updated products:", error);
+                    console.error(
+                      "Failed to delete product or fetch updated products:",
+                      error
+                    );
                   });
               }
             },
