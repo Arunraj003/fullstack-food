@@ -34,7 +34,7 @@ router.get("/all", async (res, req) => {
         });
         return response;
       });
-      return res.status(200).send({ success: true, data: response });
+      return req.status(200).send({ success: true, data: response });
     } catch (err) {
       return res.send({ success: false, msg: `Error: ${err}` });
     }
