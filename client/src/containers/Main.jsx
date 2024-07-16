@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProducts } from "../api";
-import { Header, Home, HomeSlider } from "../components";
+import { Cart, FilterSection, Header, Home, HomeSlider } from "../components";
 import { setAllProducts } from "../context/actions/productActions";
+
 
 const Main = () => {
   const products = useSelector((state) => state.products);
@@ -26,7 +27,8 @@ const Main = () => {
         <FilterSection />
       </div>
 
-      {/* {isCart && <Cart />} */}
+      {isCart && <Cart />}
+      
     </main>
   );
 };

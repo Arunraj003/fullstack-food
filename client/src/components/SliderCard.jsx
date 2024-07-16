@@ -6,7 +6,6 @@ import { addNewItemToCart, getAllCartItems } from "../api";
 import { HiCurrencyRupee, IoBasket } from "../assets/icons";
 import { alertNULL, alertSuccess } from "../context/actions/alertActions";
 import { setCartItems } from "../context/actions/cartAction";
-
 const SliderCard = ({ data, index }) => {
   const user = useSelector((state) => state.user);
   const dispatch = useDispatch();
