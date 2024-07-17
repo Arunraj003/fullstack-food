@@ -2,6 +2,7 @@ import axios from "axios";
 
 export const baseURL =
   "http://localhost:5001/food-delivery-june/us-central1/app";
+
 export const validateUserJWTToken = async (token) => {
   try {
     const res = await axios.get(`${baseURL}/api/users/jwtVerfication`, {
@@ -54,8 +55,8 @@ export const getAllUsers = async () => {
   }
 };
 
-// add an item to cart
-// add new items to  the cart
+// add a product to cart
+// add new products to cart
 export const addNewItemToCart = async (user_id, data) => {
   try {
     const res = await axios.post(

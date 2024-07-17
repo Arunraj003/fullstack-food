@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProducts } from "../api";
 import { setAllProducts } from "../context/actions/productActions";
+
 import { CChart } from "@coreui/react-chartjs";
 
 const DBHome = () => {
@@ -27,6 +28,7 @@ const DBHome = () => {
       });
     }
   }, []);
+
   return (
     <div className="flex items-center justify-center flex-col pt-6 w-full h-full">
       <div className="grid w-full grid-cols-1 md:grid-cols-2 gap-4 h-full">
@@ -41,8 +43,8 @@ const DBHome = () => {
                   "Fruits",
                   "Rice",
                   "Curry",
-                  "Bread",
                   "Chinese",
+                  "Bread",
                 ],
                 datasets: [
                   {
@@ -54,8 +56,8 @@ const DBHome = () => {
                       fruits?.length,
                       rice?.length,
                       curry?.length,
-                      bread?.length,
                       chinese?.length,
+                      bread?.length,
                     ],
                   },
                 ],
@@ -64,7 +66,6 @@ const DBHome = () => {
             />
           </div>
         </div>
-
         <div className="w-full h-full flex items-center justify-center">
           <div className="w-275 md:w-460">
             <CChart
