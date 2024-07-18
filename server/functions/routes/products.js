@@ -181,6 +181,13 @@ router.get("/getCartItems/:user_id", async (req, res) => {
 });
 
 router.post('/create-checkout-session', async (req, res) => {
+  const customer = await stripe.customers.create({
+    metadata: {
+      user_id: req.body.data.user.user_id,
+      cart: JSON.stringify(req.body.data.items),
+      total: req.body.data.total,
+    },
+  })
 
   const line_items = req.body.data.cart.map(item => {
     return {
@@ -215,6 +222,7 @@ router.post('/create-checkout-session', async (req, res) => {
     },],
     phone_number_collection: { enabled: true, },
     line_items,
+    customer: customer.id,
     mode: 'payment',
     success_url: `${process.env.CLIENT_URL}checkout-success`,
     cancel_url: `${process.env.CLIENT_URL}/`,
@@ -222,8 +230,140 @@ router.post('/create-checkout-session', async (req, res) => {
   res.send({ url: session.url });
 });
 
+let endpointSecret;
+
+// const endpointSecret = process.env.WEBHOOK_SECRET;
+
+router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let eventType;
+  let data;
+
+  if (endpointSecret) {
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } catch (err) {
+      res.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+    data = event.data.object;
+    eventType = req.body.type;
+  } else {
+    data = req.body.data.object;
+    eventType = req.body.type;
+  }
 
 
+  // Handle the event
+  if (eventType === "checkout.session.completed") {
+    stripe.customers.retrieve(data.customer).then((customer) => {
+      // console.log('Customer details',customer);
+      // console.log("customer", customer);
+      createOrder(customer, data, res);
+    })
+  }
+  // Return a 200 response to acknowledge receipt of the event
+  res.send().end();
+});
+const createOrder = async (customer, intent, res) => {
+  console.log("Inside the orders");
+  try {
+    const orderId = Date.now();
+    const data = {
+      intentId: intent.id,
+      orderId: orderId,
+      amount: intent.amount_total,
+      created: intent.created,
+      payment_method_types: intent.payment_method_types,
+      status: intent.payment_status,
+      customer: intent.customer_details,
+      shipping_details: intent.shipping_details,
+      userId: customer.metadata.user_id,
+      items: JSON.parse(customer.metadata.cart),
+      total: customer.metadata.total,
+      sts: "preparing",
+    };
+    await db.collection("orders").doc(`/${orderId}/`).set(data);
+
+    // Enhanced logging
+    console.log("Order created successfully:", data);
+
+    // Call deleteCart function and log details
+    console.log("Calling deleteCart with userId:", customer.metadata.user_id);
+    console.log("Items to be deleted:", JSON.parse(customer.metadata.cart));
+    await deleteCart(customer.metadata.user_id, JSON.parse(customer.metadata.cart));
+    
+    console.log("Cart deletion process completed.");
+    return res.status(200).send({ success: true });
+  } catch (err) {
+    console.log("Error creating order:", err);
+    return res.status(500).send({ success: false, msg: `Error :${err}` });
+  }
+};
+
+const deleteCart = async (userId, items) => {
+  console.log("Inside the delete");
+  console.log("UserId:", userId);
+  console.log("Items:", items);
+  console.log("*****************************************");
+
+  const deletePromises = items.map(async (data) => {
+    console.log("-------------------inside--------", userId, data.productId);
+    return db
+      .collection("cartItems")
+      .doc(`/${userId}/`)
+      .collection("items")
+      .doc(`/${data.productId}/`)
+      .delete() 
+      .then(() => console.log("-------------------success--------", data.productId))
+      .catch((error) => console.error("Error deleting item:", error, data.productId));
+  });
+
+  await Promise.all(deletePromises);
+  console.log("All items deletion process completed.");
+};
+
+
+
+
+
+// orders
+router.get("/orders", async (req, res) => {
+  (async () => {
+    try {
+      let query = db.collection("orders");
+      let response = [];
+      await query.get().then((querysnap) => {
+        let docs = querysnap.docs;
+        docs.map((doc) => {
+          response.push({ ...doc.data() });
+        });
+        return response;
+      });
+      return res.status(200).send({ success: true, data: response });
+    } catch (err) {
+      return res.send({ success: false, msg: `Error :${err}` });
+    }
+  })();
+});
+
+// update the order status
+router.post("/updateOrder/:order_id", async (req, res) => {
+  const order_id = req.params.order_id;
+  const sts = req.query.sts;
+
+  try {
+    const updatedItem = await db
+      .collection("orders")
+      .doc(`/${order_id}/`)
+      .update({ sts });
+    return res.status(200).send({ success: true, data: updatedItem });
+  } catch (er) {
+    return res.send({ success: false, msg: `Error :,${er}` });
+  }
+});
 
 
 module.exports = router;
