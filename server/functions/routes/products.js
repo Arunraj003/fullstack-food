@@ -294,7 +294,7 @@ const createOrder = async (customer, intent, res) => {
     console.log("Calling deleteCart with userId:", customer.metadata.user_id);
     console.log("Items to be deleted:", JSON.parse(customer.metadata.cart));
     await deleteCart(customer.metadata.user_id, JSON.parse(customer.metadata.cart));
-    
+
     console.log("Cart deletion process completed.");
     return res.status(200).send({ success: true });
   } catch (err) {
@@ -316,7 +316,7 @@ const deleteCart = async (userId, items) => {
       .doc(`/${userId}/`)
       .collection("items")
       .doc(`/${data.productId}/`)
-      .delete() 
+      .delete()
       .then(() => console.log("-------------------success--------", data.productId))
       .catch((error) => console.error("Error deleting item:", error, data.productId));
   });
@@ -324,10 +324,6 @@ const deleteCart = async (userId, items) => {
   await Promise.all(deletePromises);
   console.log("All items deletion process completed.");
 };
-
-
-
-
 
 // orders
 router.get("/orders", async (req, res) => {
