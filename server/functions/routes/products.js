@@ -43,6 +43,7 @@ router.get("/all", async (req, res) => {
     }
   })();
 });
+
 // delete a product
 router.delete("/delete/:productId", async (req, res) => {
   const productId = req.params.productId;
@@ -267,97 +268,80 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
   // Return a 200 response to acknowledge receipt of the event
   res.send().end();
 });
+
+
 const createOrder = async (customer, intent, res) => {
-  console.log("Inside the orders");
+  console.log("Inside createOrder function");
+
+  const orderId = Date.now().toString(); // Ensure orderId is a string
+  const data = {
+    intentId: intent.id,
+    orderId,
+    amount: intent.amount_total,
+    created: intent.created,
+    payment_method_types: intent.payment_method_types,
+    status: intent.payment_status,
+    customer: intent.customer_details,
+    shipping_details: intent.shipping_details,
+    userId: customer.metadata.user_id,
+    items: JSON.parse(customer.metadata.cart),
+    total: customer.metadata.total,
+    sts: "preparing",
+  };
+
   try {
-    const orderId = Date.now();
-    const data = {
-      intentId: intent.id,
-      orderId: orderId,
-      amount: intent.amount_total,
-      created: intent.created,
-      payment_method_types: intent.payment_method_types,
-      status: intent.payment_status,
-      customer: intent.customer_details,
-      shipping_details: intent.shipping_details,
-      userId: customer.metadata.user_id,
-      items: JSON.parse(customer.metadata.cart),
-      total: customer.metadata.total,
-      sts: "preparing",
-    };
-    await db.collection("orders").doc(`/${orderId}/`).set(data);
+    await db.runTransaction(async (transaction) => {
+      const orderRef = db.collection("orders").doc(orderId);
 
-    // Enhanced logging
-    console.log("Order created successfully:", data);
+      console.log("Creating order with data:", data);
+      transaction.set(orderRef, data);
 
-    // Call deleteCart function and log details
-    console.log("Calling deleteCart with userId:", customer.metadata.user_id);
-    console.log("Items to be deleted:", JSON.parse(customer.metadata.cart));
-    await deleteCart(customer.metadata.user_id, JSON.parse(customer.metadata.cart));
+      const userCartRef = db.collection("cartItems").doc(customer.metadata.user_id).collection("items");
+      const cartItems = JSON.parse(customer.metadata.cart);
 
-    console.log("Cart deletion process completed.");
-    return res.status(200).send({ success: true });
+      console.log("Deleting cart items for user:", customer.metadata.user_id);
+      for (const item of cartItems) {
+        const itemRef = userCartRef.doc(item.productId);
+        transaction.delete(itemRef);
+      }
+    });
+
+    console.log("Order created and cart items deleted successfully");
+    return res.status(201).send({ success: true });
   } catch (err) {
-    console.log("Error creating order:", err);
-    return res.status(500).send({ success: false, msg: `Error :${err}` });
+    console.error("Error creating order:", err);
+    return res.status(500).send({ success: false, msg: `Error: ${err}` });
   }
 };
 
-const deleteCart = async (userId, items) => {
-  console.log("Inside the delete");
-  console.log("UserId:", userId);
-  console.log("Items:", items);
-  console.log("*****************************************");
-
-  const deletePromises = items.map(async (data) => {
-    console.log("-------------------inside--------", userId, data.productId);
-    return db
-      .collection("cartItems")
-      .doc(`/${userId}/`)
-      .collection("items")
-      .doc(`/${data.productId}/`)
-      .delete()
-      .then(() => console.log("-------------------success--------", data.productId))
-      .catch((error) => console.error("Error deleting item:", error, data.productId));
-  });
-
-  await Promise.all(deletePromises);
-  console.log("All items deletion process completed.");
-};
-
-// orders
+// orders route
 router.get("/orders", async (req, res) => {
-  (async () => {
-    try {
-      let query = db.collection("orders");
-      let response = [];
-      await query.get().then((querysnap) => {
-        let docs = querysnap.docs;
-        docs.map((doc) => {
-          response.push({ ...doc.data() });
-        });
-        return response;
-      });
-      return res.status(200).send({ success: true, data: response });
-    } catch (err) {
-      return res.send({ success: false, msg: `Error :${err}` });
-    }
-  })();
+  try {
+    const query = db.collection("orders");
+    const response = [];
+
+    const querySnap = await query.get();
+    querySnap.docs.forEach((doc) => {
+      response.push({ ...doc.data() });
+    });
+
+    return res.status(200).send({ success: true, data: response });
+  } catch (err) {
+    return res.status(500).send({ success: false, msg: `Error: ${err}` });
+  }
 });
 
-// update the order status
+// update the order status route
 router.post("/updateOrder/:order_id", async (req, res) => {
   const order_id = req.params.order_id;
   const sts = req.query.sts;
 
   try {
-    const updatedItem = await db
-      .collection("orders")
-      .doc(`/${order_id}/`)
-      .update({ sts });
-    return res.status(200).send({ success: true, data: updatedItem });
-  } catch (er) {
-    return res.send({ success: false, msg: `Error :,${er}` });
+    const orderRef = db.collection("orders").doc(order_id);
+    await orderRef.update({ sts });
+    return res.status(200).send({ success: true, msg: `Order ${order_id} status updated to ${sts}` });
+  } catch (err) {
+    return res.status(500).send({ success: false, msg: `Error: ${err}` });
   }
 });
 

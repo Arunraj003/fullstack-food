@@ -13,32 +13,29 @@ import { setCartItems } from "./context/actions/cartAction";
 
 const App = () => {
   const firebaseAuth = getAuth(app);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const alert = useSelector((state) => state.alert);
 
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setIsLoading(true);
-    firebaseAuth.onAuthStateChanged((cred) => {
+    const handleAuthStateChange = async (cred) => {
       if (cred) {
-        cred.getIdToken().then((token) => {
-          validateUserJWTToken(token).then((data) => {
-            if (data) {
-              getAllCartItems(data.data?.user_id).then((items) => {
-                console.log(items);
-                dispatch(setCartItems(items));
-              })
-            }
-            dispatch(setUserDetails(data));
-          });
-        });
+        const token = await cred.getIdToken();
+        const data = await validateUserJWTToken(token);
+
+        if (data) {
+          const items = await getAllCartItems(data.data?.user_id);
+          dispatch(setCartItems(items));
+          dispatch(setUserDetails(data));
+        }
       }
-      setInterval(() => {
-        setIsLoading(false);
-      }, 3000);
-    });
-  }, []);
+      setIsLoading(false);
+    };
+
+    const unsubscribe = firebaseAuth.onAuthStateChanged(handleAuthStateChange);
+    return () => unsubscribe();
+  }, [firebaseAuth, dispatch]);
 
   return (
     <div className="w-screen min-h-screen h-auto flex flex-col items-center justify-center">
