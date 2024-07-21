@@ -1,7 +1,21 @@
 {
+  "hosting": {
+    "public": "client/build",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "default"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "functions": [
     {
-      "source": "functions",
+      "source": "server/functions",
       "codebase": "default",
       "ignore": [
         "node_modules",
