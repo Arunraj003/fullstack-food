@@ -271,77 +271,86 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
 
 
 const createOrder = async (customer, intent, res) => {
-  console.log("Inside createOrder function");
-
-  const orderId = Date.now().toString(); // Ensure orderId is a string
-  const data = {
-    intentId: intent.id,
-    orderId,
-    amount: intent.amount_total,
-    created: intent.created,
-    payment_method_types: intent.payment_method_types,
-    status: intent.payment_status,
-    customer: intent.customer_details,
-    shipping_details: intent.shipping_details,
-    userId: customer.metadata.user_id,
-    items: JSON.parse(customer.metadata.cart),
-    total: customer.metadata.total,
-    sts: "preparing",
-  };
-
+  console.log("Inside the orders");
   try {
-    await db.runTransaction(async (transaction) => {
-      const orderRef = db.collection("orders").doc(orderId);
+    const orderId = Date.now();
+    const data = {
+      intentId: intent.id,
+      orderId: orderId,
+      amount: intent.amount_total,
+      created: intent.created,
+      payment_method_types: intent.payment_method_types,
+      status: intent.payment_status,
+      customer: intent.customer_details,
+      shipping_details: intent.shipping_details,
+      userId: customer.metadata.user_id,
+      items: JSON.parse(customer.metadata.cart),
+      total: customer.metadata.total,
+      sts: "preparing",
+    };
 
-      console.log("Creating order with data:", data);
-      transaction.set(orderRef, data);
+    await db.collection("orders").doc(`/${orderId}/`).set(data);
 
-      const userCartRef = db.collection("cartItems").doc(customer.metadata.user_id).collection("items");
-      const cartItems = JSON.parse(customer.metadata.cart);
+    deleteCart(customer.metadata.user_id, JSON.parse(customer.metadata.cart));
+    console.log("*****************************************");
 
-      console.log("Deleting cart items for user:", customer.metadata.user_id);
-      for (const item of cartItems) {
-        const itemRef = userCartRef.doc(item.productId);
-        transaction.delete(itemRef);
-      }
-    });
-
-    console.log("Order created and cart items deleted successfully");
-    return res.status(201).send({ success: true });
+    return res.status(200).send({ success: true });
   } catch (err) {
-    console.error("Error creating order:", err);
-    return res.status(500).send({ success: false, msg: `Error: ${err}` });
+    console.log(err);
   }
 };
 
-// orders route
+const deleteCart = async (userId, items) => {
+  console.log("Inside the delete");
+
+  console.log(userId);
+
+  console.log("*****************************************");
+  items.map(async (data) => {
+    console.log("-------------------inside--------", userId, data.productId);
+    await db
+      .collection("cartItems")
+      .doc(`/${userId}/`)
+      .collection("items")
+      .doc(`/${data.productId}/`)
+      .delete()
+      .then(() => console.log("-------------------successs--------"));
+  });
+};
+
+// orders
 router.get("/orders", async (req, res) => {
-  try {
-    const query = db.collection("orders");
-    const response = [];
-
-    const querySnap = await query.get();
-    querySnap.docs.forEach((doc) => {
-      response.push({ ...doc.data() });
-    });
-
-    return res.status(200).send({ success: true, data: response });
-  } catch (err) {
-    return res.status(500).send({ success: false, msg: `Error: ${err}` });
-  }
+  (async () => {
+    try {
+      let query = db.collection("orders");
+      let response = [];
+      await query.get().then((querysnap) => {
+        let docs = querysnap.docs;
+        docs.map((doc) => {
+          response.push({ ...doc.data() });
+        });
+        return response;
+      });
+      return res.status(200).send({ success: true, data: response });
+    } catch (err) {
+      return res.send({ success: false, msg: `Error :${err}` });
+    }
+  })();
 });
 
-// update the order status route
+// update the order status
 router.post("/updateOrder/:order_id", async (req, res) => {
   const order_id = req.params.order_id;
   const sts = req.query.sts;
 
   try {
-    const orderRef = db.collection("orders").doc(order_id);
-    await orderRef.update({ sts });
-    return res.status(200).send({ success: true, msg: `Order ${order_id} status updated to ${sts}` });
-  } catch (err) {
-    return res.status(500).send({ success: false, msg: `Error: ${err}` });
+    const updatedItem = await db
+      .collection("orders")
+      .doc(`/${order_id}/`)
+      .update({ sts });
+    return res.status(200).send({ success: true, data: updatedItem });
+  } catch (er) {
+    return res.send({ success: false, msg: `Error :,${er}` });
   }
 });
 

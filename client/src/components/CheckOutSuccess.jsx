@@ -5,6 +5,7 @@ import { Bill } from "../assets";
 import { Header } from "../components";
 import { motion } from "framer-motion";
 import { buttonClick } from "../animations";
+import { useSelector } from "react-redux";
 
 const CheckoutSuccess = () => {
   return (

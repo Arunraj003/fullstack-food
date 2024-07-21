@@ -14,7 +14,7 @@ const DBOrders = () => {
         dispatch(setOrders(data));
       });
     }
-  }, [orders,dispatch]);
+  }, []);
 
   return (
     <div className=" flex items-center justify-center flex-col pt-6 w-full gap-4">
